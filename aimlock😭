@@ -1,0 +1,132 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+local MAX_DISTANCE = 500
+local MAX_ANGLE = 180
+local isLockOn = false
+
+-- Create GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "LockOnScreenGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = PlayerGui
+
+-- Create Lock-On Button
+local button = Instance.new("TextButton")
+button.Name = "LockOnButton"
+button.Size = UDim2.new(0, 60, 0, 60)
+button.Position = UDim2.new(0.85, 0, 0.85, 0)
+button.Text = ""
+button.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+button.BackgroundTransparency = 0.1
+button.Parent = screenGui
+
+-- Rounded corners
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(1, 0)
+corner.Parent = button
+
+-- Get HumanoidRootPart
+local function getHRP(player)
+	if player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+		return player.Character.HumanoidRootPart
+	end
+	return nil
+end
+
+-- Find best target
+local function getTarget()
+	local myHRP = getHRP(LocalPlayer)
+	if not myHRP then return nil end
+
+	local closestPlayer = nil
+	local closestAngle = MAX_ANGLE
+	local myLookVector = Camera.CFrame.LookVector
+
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer then
+			local targetHRP = getHRP(player)
+			if targetHRP then
+				local direction = (targetHRP.Position - myHRP.Position).Unit
+				local dot = myLookVector:Dot(direction)
+				local angle = math.deg(math.acos(dot))
+				local distance = (targetHRP.Position - myHRP.Position).Magnitude
+
+				if angle < closestAngle and distance <= MAX_DISTANCE then
+					closestAngle = angle
+					closestPlayer = targetHRP
+				end
+			end
+		end
+	end
+
+	return closestPlayer
+end
+
+-- Camera lock-on
+RunService.RenderStepped:Connect(function()
+	if isLockOn then
+		local target = getTarget()
+		if target then
+			local headOffset = Vector3.new(0, 2, 0) -- Adjust if needed
+			local targetPosition = target.Position + headOffset
+			local direction = (targetPosition - Camera.CFrame.Position).Unit
+			Camera.CFrame = CFrame.new(Camera.CFrame.Position, Camera.CFrame.Position + direction)
+		end
+	end
+end)
+
+-- Toggle button click
+button.MouseButton1Click:Connect(function()
+	isLockOn = not isLockOn
+	if isLockOn then
+		button.BackgroundColor3 = Color3.fromRGB(80, 200, 80)
+	else
+		button.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+	end
+end)
+
+-- Drag functionality
+local dragging = false
+local dragInput, dragStart, startPos
+
+local function updateDrag(input)
+	local delta = input.Position - dragStart
+	button.Position = UDim2.new(
+		startPos.X.Scale,
+		startPos.X.Offset + delta.X,
+		startPos.Y.Scale,
+		startPos.Y.Offset + delta.Y
+	)
+end
+
+button.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = button.Position
+
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+button.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		updateDrag(input)
+	end
+end)
