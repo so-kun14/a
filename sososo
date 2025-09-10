@@ -1,0 +1,61 @@
+local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+
+local Window = Rayfield:CreateWindow({
+	Name = "そそそ",
+	LoadingTitle = "ろーどちゅー",
+	LoadingSubtitle = "Rayfield UI",
+	ConfigurationSaving = {
+		Enabled = false,
+	},
+	KeySystem = false,
+})
+
+local Tab = Window:CreateTab("スクリプト", 4483362458)
+
+Tab:CreateButton({
+	Name = "幽霊船",
+	Callback = function()
+		Rayfield:Notify({
+			Title = "実行中",
+			Content = "Ghost Ship をロードしています...",
+			Duration = 3,
+		})
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/tintinkaikai/GhostShip/refs/heads/main/ghost%20ship%20for%20mobile"))()
+	end,
+})
+
+Tab:CreateButton({
+	Name = "フライ",
+	Callback = function()
+		Rayfield:Notify({
+			Title = "実行中",
+			Content = "FlyGuiV3 をロードしています...",
+			Duration = 3,
+		})
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/XNEOFF/FlyGuiV3/main/FlyGuiV3.txt"))()
+	end,
+})
+
+Tab:CreateButton({
+	Name = "いるかハブ",
+	Callback = function()
+		Rayfield:Notify({
+			Title = "実行中",
+			Content = "Iruka Hub をロードしています...",
+			Duration = 3,
+		})
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/iruka-kamone/iruka_hub/refs/heads/main/neko"))()
+	end,
+})
+
+Tab:CreateButton({
+	Name = "いるかハブ",
+	Callback = function()
+		Rayfield:Notify({
+			Title = "実行中",
+			Content = "Iruka Hub をロードしています...",
+			Duration = 3,
+		})
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/iruka-kamone/iruka_hub/refs/heads/main/neko"))()
+	end,
+})
