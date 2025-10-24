@@ -1,0 +1,149 @@
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+local SUPER_JUMP_VELOCITY = 300
+local GLIDE_SPEED = 400
+local GLIDE_TIMEOUT = 0.1
+
+local activeVelocity = nil
+local glideDirection = nil
+
+local function flatLookVector()
+	local v = Camera.CFrame.LookVector
+	local flat = Vector3.new(v.X, 0, v.Z)
+	if flat.Magnitude == 0 then
+		local char = LocalPlayer.Character
+		if char and char:FindFirstChild("HumanoidRootPart") then
+			flat = char.HumanoidRootPart.CFrame.LookVector
+			flat = Vector3.new(flat.X, 0, flat.Z)
+		else
+			flat = Vector3.new(0, 0, -1)
+		end
+	end
+	return flat.Unit
+end
+
+local function stopGlide()
+	if activeVelocity then
+		activeVelocity:Destroy()
+		activeVelocity = nil
+		glideDirection = nil
+	end
+end
+
+local function superJump()
+	stopGlide()
+	local char = LocalPlayer.Character
+	if not (char and char:FindFirstChild("HumanoidRootPart")) then return end
+	local humanoid = char:FindFirstChildOfClass("Humanoid")
+	local root = char.HumanoidRootPart
+	 -- humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+	root.Velocity = Vector3.new(0, SUPER_JUMP_VELOCITY, 0)
+end
+
+local function startGlide()
+	stopGlide()
+	local char = LocalPlayer.Character
+	if not (char and char:FindFirstChild("HumanoidRootPart")) then return end
+	local humanoid = char:FindFirstChildOfClass("Humanoid")
+	local root = char.HumanoidRootPart
+	 --humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+	glideDirection = flatLookVector()
+	if root.Parent == nil or activeVelocity then return end
+	local bv = Instance.new("BodyVelocity")
+	bv.Name = "JumpGlide"
+	bv.MaxForce = Vector3.new(math.huge, 0, math.huge)
+	bv.P = 3000
+	bv.Parent = root
+	activeVelocity = bv
+	activeVelocity.Velocity = glideDirection * GLIDE_SPEED
+	local thisBV = bv
+	task.delay(GLIDE_TIMEOUT, function()
+		if activeVelocity == thisBV then
+			stopGlide()
+		end
+	end)
+end
+
+RunService.Heartbeat:Connect(function()
+	if not (activeVelocity and glideDirection) then return end
+	local char = LocalPlayer.Character
+	if not (char and char:FindFirstChild("HumanoidRootPart")) then
+		stopGlide()
+		return
+	end
+	local root = char.HumanoidRootPart
+	activeVelocity.Velocity = glideDirection * GLIDE_SPEED
+	local params = RaycastParams.new()
+	params.FilterDescendantsInstances = {char}
+	params.FilterType = Enum.RaycastFilterType.Blacklist
+	local result = workspace:Raycast(root.Position, glideDirection * 3, params)
+	if result and result.Instance and not result.Instance:IsDescendantOf(char) then
+		stopGlide()
+	end
+end)
+
+local glideStopKeys = {
+	[Enum.KeyCode.Q] = true,
+	[Enum.KeyCode.Z] = true,
+	[Enum.KeyCode.X] = true,
+	[Enum.KeyCode.C] = true,
+	[Enum.KeyCode.V] = true,
+	[Enum.KeyCode.F] = true,
+	[Enum.KeyCode.R] = true,
+}
+
+UserInputService.InputBegan:Connect(function(input)
+	local key = input.KeyCode
+	if glideStopKeys[key] then
+		stopGlide()
+	elseif key == Enum.KeyCode.M then
+		startGlide()
+	elseif key == Enum.KeyCode.N then
+		superJump()
+	end
+end)
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "JumpGlideUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local dragFrame = Instance.new("Frame")
+dragFrame.Name = "DragFrame"
+dragFrame.Size = UDim2.new(0, 100, 0, 80)
+dragFrame.Position = UDim2.new(1, -110, 1, -100)
+dragFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+dragFrame.BackgroundTransparency = 0.3
+dragFrame.BorderSizePixel = 0
+dragFrame.Active = true
+dragFrame.Draggable = true
+dragFrame.Parent = screenGui
+
+local function createButton(name, position, text, callback)
+	local button = Instance.new("TextButton")
+	button.Name = name
+	button.Size = UDim2.new(0, 80, 0, 30)
+	button.Position = position
+	button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+	button.TextColor3 = Color3.new(1, 1, 1)
+	button.Font = Enum.Font.SourceSansBold
+	button.TextSize = 18
+	button.Text = text
+	button.BorderSizePixel = 0
+	button.AutoButtonColor = true
+	button.Parent = dragFrame
+	button.MouseButton1Click:Connect(callback)
+end
+
+createButton("SuperJumpButton", UDim2.new(0, 10, 0, 5), "ジャンプ", function()
+	superJump()
+end)
+
+createButton("GlideButton", UDim2.new(0, 10, 0, 40), "滑空", function()
+	startGlide()
+end)
